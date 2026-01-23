@@ -1,3 +1,5 @@
+import jokesData from '../jokes.json' assert { type: 'json' };
+
 export default async function handler(req, res) {
   // 1. Проверка безопасности (чтобы никто другой не дергал вашу ссылку)
   // Vercel автоматически добавляет этот заголовок при запуске Cron
@@ -7,19 +9,11 @@ export default async function handler(req, res) {
     // return res.status(401).json({ success: false });
   }
 
-  // 2. Ваш список фраз
-  const phrases = [
-    "пора менять лоток итд",
-    "ребята воняет сильно поменяйте пожалуйста",
-    "поменяли уже?",
-    "пора лоточек обновить",
-    "он покакал",
-    "чья сейчас очередь я забыл",
-    "аааа орэшки бигбоп(поменяйте лоток)"
-  ];
+  // 2. Берем анекдоты про Башмачка из файла
+  const jokes = jokesData.jokes;
 
-  // 3. Выбираем случайную фразу
-  const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+  // 3. Выбираем случайный анекдот
+  const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
 
   // 4. Отправляем в Telegram
   const token = process.env.TELEGRAM_TOKEN;
@@ -33,7 +27,8 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: chatId,
-        text: randomPhrase
+        text: randomJoke,
+        link_preview_options: { is_disabled: true }
       })
     });
 

@@ -1,0 +1,33 @@
+name: Generate Weekly Jokes
+
+on:
+  schedule:
+    # Каждую неделю в воскресенье в 10:00 UTC
+    - cron: '0 10 * * 0'
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Generate new jokes
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          node scripts/generate-jokes.js
+          
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add jokes.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Add 7 new Bashmachok jokes" && git push)
