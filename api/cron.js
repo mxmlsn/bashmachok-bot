@@ -1,5 +1,3 @@
-import jokesData from '../jokes.json' assert { type: 'json' };
-
 export default async function handler(req, res) {
   // 1. Проверка безопасности (чтобы никто другой не дергал вашу ссылку)
   // Vercel автоматически добавляет этот заголовок при запуске Cron
@@ -9,7 +7,9 @@ export default async function handler(req, res) {
     // return res.status(401).json({ success: false });
   }
 
-  // 2. Берем анекдоты про Башмачка из файла
+  // 2. Загружаем анекдоты про Башмачка
+  const jokesResponse = await fetch('https://raw.githubusercontent.com/mxmlsn/bashmachok-bot/main/jokes.json');
+  const jokesData = await jokesResponse.json();
   const jokes = jokesData.jokes;
 
   // 3. Выбираем случайный анекдот
