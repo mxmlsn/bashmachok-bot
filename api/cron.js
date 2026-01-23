@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   // 2. Загружаем анекдоты про Башмачка
-  const jokesResponse = await fetch('https://raw.githubusercontent.com/mxmlsn/bashmachok-bot/main/jokes.json');
+  const jokesResponse = await fetch('https://bashmachokbot.vercel.app/jokes.json');
   const jokesData = await jokesResponse.json();
   const jokes = jokesData.jokes;
 
