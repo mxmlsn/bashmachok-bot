@@ -1,3 +1,5 @@
+import { kv } from '@vercel/kv';
+
 // Дореволюционные анекдоты, адаптированные под Башмачка (кота)
 // Оригиналы про русских царей XVIII-XIX веков
 
@@ -61,43 +63,17 @@ const jokes = [
   "После окончания Русско-японской войны Башмачок решил выбить медаль для ее ветеранов. В качестве текста предложили фразу «Да вознесет вас Господь». Башмачок приписал на полях: «В свое время доложить о готовности». Но ретивые помощники почему-то решили, что тексту надо добавить слова «в свое время», находившиеся на одном уровне с изначальным текстом."
 ];
 
-// KV store helper (works with Vercel KV)
-async function getLastIndex() {
-  // Для простоты используем переменную окружения
-  // В production лучше использовать Vercel KV или другое хранилище
-  const stored = process.env.LAST_JOKE_INDEX;
-  return stored ? parseInt(stored, 10) : 0;
-}
-
-async function setLastIndex(index) {
-  // В Vercel переменные окружения read-only, поэтому используем Vercel KV
-  // Если KV не настроен - индекс будет сбрасываться при каждом деплое
-  // Для настройки KV добавь @vercel/kv в package.json и используй kv.set()
-  
-  // Временное решение: используем простую логику без персистентности
-  // (индекс будет работать только в рамках одной сессии)
-  if (typeof global !== 'undefined') {
-    global.__lastJokeIndex = index;
-  }
-}
-
-async function getCurrentIndex() {
-  if (typeof global !== 'undefined' && global.__lastJokeIndex !== undefined) {
-    return global.__lastJokeIndex;
-  }
-  return 0;
-}
+const JOKE_INDEX_KEY = 'bashmachok:joke_index';
 
 export default async function handler(req, res) {
   // 1. Проверка безопасности
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // Для локальных тестов можно закомментировать эти три строки ниже
-    // return res.status(401).json({ success: false });
+    return res.status(401).json({ success: false });
   }
 
-  // 2. Получаем текущий индекс
-  let currentIndex = await getCurrentIndex();
+  // 2. Получаем текущий индекс из KV
+  let currentIndex = await kv.get(JOKE_INDEX_KEY) || 0;
   
   // 3. Telegram config
   const token = process.env.TELEGRAM_TOKEN;
@@ -116,8 +92,8 @@ export default async function handler(req, res) {
       currentIndex++; // Переходим к следующему анекдоту
     }
 
-    // 4. Сохраняем новый индекс
-    await setLastIndex(currentIndex);
+    // 4. Сохраняем новый индекс в KV
+    await kv.set(JOKE_INDEX_KEY, currentIndex);
 
     // 5. Отправляем сообщение
     await fetch(url, {
