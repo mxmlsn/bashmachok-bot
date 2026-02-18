@@ -61,20 +61,6 @@ const jokes = [
   "После окончания Русско-японской войны Башмачок решил выбить медаль для ее ветеранов. В качестве текста предложили фразу «Да вознесет вас Господь». Башмачок приписал на полях: «В свое время доложить о готовности». Но ретивые помощники почему-то решили, что тексту надо добавить слова «в свое время», находившиеся на одном уровне с изначальным текстом."
 ];
 
-// Простое хранилище индекса в памяти
-async function getCurrentIndex() {
-  if (typeof global !== 'undefined' && global.__lastJokeIndex !== undefined) {
-    return global.__lastJokeIndex;
-  }
-  return 0;
-}
-
-async function setLastIndex(index) {
-  if (typeof global !== 'undefined') {
-    global.__lastJokeIndex = index;
-  }
-}
-
 export default async function handler(req, res) {
   // 1. Проверка безопасности
   const authHeader = req.headers.get('authorization');
@@ -82,30 +68,18 @@ export default async function handler(req, res) {
     // return res.status(401).json({ success: false });
   }
 
-  // 2. Получаем текущий индекс
-  let currentIndex = await getCurrentIndex();
-  
+  // 2. Выбираем анекдот по дате — каждый день следующий по порядку, без повторов
+  // dayNumber детерминирован: один день = один анекдот, никакого стейта не нужно
+  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const index = dayNumber % jokes.length;
+  const messageText = jokes[index];
+
   // 3. Telegram config
   const token = process.env.TELEGRAM_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
   try {
-    let messageText;
-    
-    // Если дошли до конца списка - отправляем спец. сообщение и сбрасываем
-    if (currentIndex >= jokes.length) {
-      messageText = "анекдоты кончились. Башмачок устал рассказывать истории из дореволюционной России и отправился спать.";
-      currentIndex = 0; // Сброс для следующего цикла
-    } else {
-      messageText = jokes[currentIndex];
-      currentIndex++; // Переходим к следующему анекдоту
-    }
-
-    // 4. Сохраняем новый индекс
-    await setLastIndex(currentIndex);
-
-    // 5. Отправляем сообщение
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -119,7 +93,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       message: "Message sent!", 
-      index: currentIndex,
+      index: index + 1,
       total: jokes.length 
     });
   } catch (error) {
